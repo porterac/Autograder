@@ -44,7 +44,7 @@ def check_student_file(path):
 
     if errors:
         return False, errors
-    return True, "File format confirmed! You may submit now."
+    return True, "File format looks good! You may submit now."
 
 if __name__ == "__main__":
     # Check for correct usage
