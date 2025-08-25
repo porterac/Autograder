@@ -45,29 +45,37 @@ def run_student_script(path):
     spec.loader.exec_module(student)
     return student
 
-def extract_plot():
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close()
-    buf.seek(0)
-    return Image.open(buf)
+def extract_plots():
+    # made to handle mulitple images per file
+    images = []
+    for fig_num in plt.get_fignums():
+        fig = plt.figure(fig_num)
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png')
+        buf.seek(0)
+        images.append(Image.open(buf))
+    plt.close("all")
+    return images
 
 def compare_values(student_output, correct_output, tol=1e-4):
     return np.allclose(student_output, correct_output, atol=tol)
 
-def compare_images(student_img, correct_img):
-    student_img = student_img.convert('L').resize(correct_img.size)
-    correct_img = correct_img.convert('L')
-    student_arr = np.array(student_img)
-    correct_arr = np.array(correct_img)
-    score, _ = ssim(student_arr, correct_arr, full=True)
+def compare_images(student_imgs, correct_img):
+    # Built for handeling mulitple images in one script
+    score = []
+    for image in student_imgs:
+        student_img = image.convert('L').resize(correct_img.size)
+        correct_img = correct_img.convert('L')
+        student_arr = np.array(student_img)
+        correct_arr = np.array(correct_img)
+        score.append(ssim(student_arr, correct_arr, full=True))
     return score
 
-def grade_student(student_path, expected_values, expected_img): 
+def grade_student(student_path, expected_values, expected_imgs): 
     student = run_student_script(student_path)
     
     student_output = getattr(student, "result", None)
-    student_plot = extract_plot()
+    student_plots = extract_plots()
 
     score = 0
     if compare_values(student_output, expected_values):
@@ -76,12 +84,14 @@ def grade_student(student_path, expected_values, expected_img):
     else:
         print("Output values incorrect.")
 
-    similarity = compare_images(student_plot, expected_img)
-    if similarity > 0.95:
-        score += 1
-        print("Plot is correct.")
-    else:
-        print(f"Plot is incorrect. Similarity: {similarity:.2f}")
+    similarity = compare_images(student_plots, expected_imgs)
+
+    for i, val in enumerate(similarity):
+        if val >= 0.95:
+            score += 1
+            print(f"Plot {i} is correct.")
+        else:
+            print(f"Plot {i} is incorrect. Similarity: {similarity:.2f}")
 
     return score
 
