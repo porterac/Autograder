@@ -14,7 +14,6 @@ FORBIDDEN_IMPORTS = {"os", "sys", "subprocess", "shutil"}
 
 # Check for nefarious activites 
 def check_forbidden_imports(path, forbidden_imports):
-    global errors
     try:
         with open(path, "r", encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=path)
@@ -40,10 +39,14 @@ def load_expected_outputs():
     return expected_values, expected_img
 
 def run_student_script(path):
-    spec = importlib.util.spec_from_file_location("student_module", path)
-    student = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(student)
-    return student
+    try:
+        spec = importlib.util.spec_from_file_location("student_module", path)
+        student = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(student)
+        return student
+    except Exception as e:
+        print(f"Error running student script at {path}: {e}")
+        return None
 
 def extract_plots():
     # made to handle mulitple images per file
@@ -68,7 +71,8 @@ def compare_images(student_imgs, correct_img):
         correct_img = correct_img.convert('L')
         student_arr = np.array(student_img)
         correct_arr = np.array(correct_img)
-        score.append(ssim(student_arr, correct_arr, full=True))
+        sim_score, _ = ssim(student_arr, correct_arr, full=True)
+        score.append(sim_score)
     return score
 
 def grade_student(student_path, expected_values, expected_imgs): 
@@ -78,7 +82,7 @@ def grade_student(student_path, expected_values, expected_imgs):
     student_plots = extract_plots()
 
     score = 0
-    answers = compare_values(student_output, expected_values):
+    answers = compare_values(student_output, expected_values)
 
     for i, ans in enumerate(answers):
         if ans != True:
@@ -95,7 +99,7 @@ def grade_student(student_path, expected_values, expected_imgs):
             score += 1
             print(f"Plot {i} is correct.")
         else:
-            print(f"Plot {i} is incorrect. Similarity: {similarity:.2f}")
+            print(f"Plot {i} is incorrect. Similarity: {val:.2f}")
 
     return score
 
@@ -108,7 +112,7 @@ if __name__ == "__main__":
             path = os.path.join(student_dir, filename)
             # Check imports first
             print(f"\nChecking {filename} for forbidden imports")
-            ok, message = check_forbidden_imports(path)
+            ok, message = check_forbidden_imports(path, FORBIDDEN_IMPORTS)
             if not ok:
                  print(f"\n{filename} has a forbidden import")
                  continue
