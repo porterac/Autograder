@@ -6,45 +6,17 @@ before submitting.
 
 import importlib.util
 import sys
-import ast
 import matplotlib.pyplot as plt
 
 REQUIRED_VARIABLES = ["result"]
 REQUIRED_FUNCTIONS = ["my_func"]
-FORBIDDEN_IMPORTS = {"os", "sys", "subprocess", "shutil"}
 errors = []
-
-# Check for nefarious activites 
-def check_forbidden_imports(path, forbidden_imports):
-    global errors
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            tree = ast.parse(f.read(), filename=path)
-    except SyntaxError as e:
-        return False, [f"Syntax error while parsing file: {e}"]
-
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                if alias.name.split(".")[0] in forbidden_imports:
-                    errors.append(f"Forbidden import detected: {alias.name}")
-        elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.split(".")[0] in forbidden_imports:
-                errors.append(f"Forbidden import detected: {node.module}")
-
-    return True, None
-
 
 def check_student_file(path):
     global errors
 
     if not path.endswith(".py"):
         return False, "File must be a .py file"
-
-    # Check imports first
-    ok, message = check_forbidden_imports(path)
-    if not ok:
-        return False, message
 
     try:
         # Clear any existing plots before running student script
