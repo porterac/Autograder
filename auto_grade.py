@@ -78,11 +78,15 @@ def grade_student(student_path, expected_values, expected_imgs):
     student_plots = extract_plots()
 
     score = 0
-    if compare_values(student_output, expected_values):
-        score += 1
-        print("Output values correct.")
-    else:
-        print("Output values incorrect.")
+    answers = compare_values(student_output, expected_values):
+
+    for i, ans in enumerate(answers):
+        if ans != True:
+            print(f"Output values incorrect for question {i}.")
+        else:
+            score += 1
+            print(f"Output values correct for question {i}.")
+            
 
     similarity = compare_images(student_plots, expected_imgs)
 
